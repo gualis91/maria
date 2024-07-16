@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Grabadora de Audio</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/RecordRTC/5.6.2/RecordRTC.min.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; padding: 20px; }
+        button { margin: 10px; padding: 10px 20px; font-size: 16px; }
+        #recordingsList { margin-top: 20px; }
+        #status { color: #666; margin-top: 10px; }
+    </style>
+</head>
+<body>
+    <h1>Grabadora de Audio</h1>
+    <button id="recordButton">Grabar</button>
+    <button id="stopButton" disabled>Detener</button>
+    <div id="status"></div>
+    <div id="recordingsList"></div>
+
+    <script>
+        let recorder;
+        let audio;
+        const recordButton = document.getElementById('recordButton');
+        const stopButton = document.getElementById('stopButton');
+        const status = document.getElementById('status');
+
+        recordButton.onclick = async function() {
+            try {
+                status.textContent = 'Solicitando permisos de micrófono...';
+                const stream = await navigator.mediaDevices.getUserMedia({audio: true});
+                status.textContent = 'Permiso concedido, iniciando grabación...';
+                
+                recorder = new RecordRTC(stream, {
+                    type: 'audio',
+                    mimeType: 'audio/webm'
+                });
+
+                recorder.startRecording();
+                
+                recordButton.disabled = true;
+                stopButton.disabled = false;
+                status.textContent = 'Grabando audio...';
+            } catch (error) {
+                console.error('Error al iniciar la grabación:', error);
+                status.textContent = 'Error: No se pudo acceder al micrófono. Por favor, verifica los permisos.';
+            }
+        };
+
+        stopButton.onclick = function() {
+            if (recorder) {
+                recorder.stopRecording(function() {
+                    let blob = recorder.getBlob();
+                    audio = new Audio(URL.createObjectURL(blob));
+
+                    let playButton = document.createElement('button');
+                    playButton.innerHTML = 'Reproducir grabación ' + (document.querySelectorAll('#recordingsList button').length + 1);
+                    playButton.onclick = function() {
+                        audio.play();
+                    };
+
+                    document.getElementById('recordingsList').appendChild(playButton);
+                    status.textContent = 'Grabación finalizada y lista para reproducir.';
+                });
+            } else {
+                status.textContent = 'Error: La grabación no se inició correctamente.';
+            }
+            
+            recordButton.disabled = false;
+            stopButton.disabled = true;
+        };
+    </script>
+</body>
+</html>
